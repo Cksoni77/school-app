@@ -1,24 +1,35 @@
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Login from "./components/login/Login";
+import Home from "./components/home/Home";
+import Student from "./components/student/StudentPortal";
+//import Teacher from "./components/teacher/TeacherProfile"; // create this file if missing
+import ProtectedRoute from "./components/route/ProtectedRoute";
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Login />} />
+
+        <Route
+  path="/home"
+  element={
+    <ProtectedRoute allowedRoles={["ADMIN"]}>
+      <Home />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/student"
+  element={
+    <ProtectedRoute allowedRoles={["STUDENT"]}>
+      <Student />
+    </ProtectedRoute>
+  }
+/>
+      </Routes>
+    </Router>
   );
 }
 
