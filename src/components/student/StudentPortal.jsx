@@ -10,7 +10,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import './StudentPortal.css';
+import "./StudentPortal.css";
 
 /* ── tiny icon helper ───────────────────────────────────────── */
 const Ic = ({ size = 16, children, ...rest }) => (
@@ -251,28 +251,28 @@ const MESSAGES = [
 /* ================================================================
    PROFILE DATA
    ================================================================ */
-const STUDENT_PROFILE = {
-  name: 'Rahul Kumar',
-  avatar: 'RK',
-  rollNo: '14',
-  class: 'Grade 10 – A',
-  dob: 'March 12, 2009',
-  gender: 'Male',
-  bloodGroup: 'B+',
-  admissionNo: 'EC-2019-0145',
-  email: 'rahul.kumar@student.educore.in',
-  phone: '+91 98765 43210',
-  address: '42, Sector 14, Gurugram, Haryana – 122001',
-  house: 'Blue House',
-  sports: 'Football, Chess',
-  joinDate: 'June 2019',
-  father: { name: 'Mr. Ajay Kumar', occupation: 'Software Engineer', phone: '+91 98765 43210' },
-  mother: { name: 'Mrs. Priya Kumar', occupation: 'Teacher', phone: '+91 87654 32109' },
-  guardian: 'Father',
-  attendance: '94%',
-  avgScore: '88.2',
-  rank: '#2',
-  certificates: ['Mathematics Olympiad – Gold 2024', 'Science Fair – Runner Up 2023', 'Best Student Award – 2023'],
+const STUDENT_PROFILE_DEFAULT = {
+  name: 'Loading...',
+  avatar: '?',
+  rollNo: '—',
+  class: '—',
+  dob: '—',
+  gender: '—',
+  bloodGroup: '—',
+  admissionNo: '—',
+  email: '—',
+  phone: '—',
+  address: '—',
+  house: '—',
+  sports: '—',
+  joinDate: '—',
+  father: { name: '—', occupation: '—', phone: '—' },
+  mother: { name: '—', occupation: '—', phone: '—' },
+  guardian: '—',
+  attendance: '—',
+  avgScore: '—',
+  rank: '—',
+  certificates: [],
 };
 
 /* ================================================================
@@ -498,8 +498,174 @@ function MessagesPanel({ onClose }) {
 /* ================================================================
    PROFILE PANEL
    ================================================================ */
+
+
+function mappedData(data) {
+  return {
+    name: data.name || "N/A",
+    avatar: data.name
+      ? data.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
+      : "??",
+
+    rollNo: data.rollNo || "N/A",
+    class: data.className || "N/A",
+
+    dob: data.dob || "N/A",
+    gender: data.gender || "N/A",
+    bloodGroup: data.bloodGroup || "N/A",
+
+    admissionNo: data.admissionNo || "N/A",
+    joinDate: data.joiningDate || "N/A",
+
+    email: data.email || "N/A",
+    phone: data.phone || "N/A",
+    address: data.address || "N/A",
+
+    house: data.house || "N/A",
+    sports: data.sportsActivities || "N/A",
+
+    father: {
+      name: data.fatherName || "N/A",
+      occupation: data.fatherOccupation || "N/A",
+      phone: data.emergencyContact || "N/A",
+    },
+
+    mother: {
+      name: data.motherName || "N/A",
+      occupation: data.motherOccupation || "N/A",
+      phone: "N/A",
+    },
+
+    attendance: data.attendancePercentage || "0%",
+    avgScore: data.avgScore || "0",
+    rank: data.classRank || "-",
+
+    certificates: data.achievements || [],
+  };
+}
+
 function ProfilePanel({ onClose, setActive }) {
-  const p = STUDENT_PROFILE;
+  const [profile, setProfile] = useState(STUDENT_PROFILE_DEFAULT);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError  ] = useState(null);
+
+  /* Fetch on mount */
+useEffect(() => {
+  let cancelled = false;
+
+  const token = localStorage.getItem("token");
+
+fetch("http://localhost:8080/api/student/profile", {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+})
+    .then(res => {
+      if (!res.ok) throw new Error(`Server responded ${res.status}`);
+      return res.json();
+    })
+    .then(data => {
+  if (!cancelled) {
+    const mapped = mappedData(data);   // 👈 convert
+    setProfile(mapped);                // 👈 set state
+    setLoading(false);
+  }
+})
+    .catch(err => {
+      if (!cancelled) {
+        setError(err.message);
+        setLoading(false);
+      }
+    });
+
+  return () => { cancelled = true; };
+}, []);
+
+  const p = profile;
+
+  /* ── Loading skeleton ─────────────────────────────────────── */
+  if (loading) {
+    return (
+      <div className="sp-panel sp-profile-panel animate">
+        <div className="sp-panel-hd">
+          <div className="sp-panel-title">My Profile</div>
+          <button className="sp-panel-close" onClick={onClose}>
+            <Ic size={16}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Ic>
+          </button>
+        </div>
+        <div className="sp-panel-body sp-profile-body">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '8px 0' }}>
+            {/* Avatar + name skeleton */}
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+              <div style={{
+                width: 64, height: 64, borderRadius: '50%',
+                background: 'var(--border)', animation: 'sp-skeleton-pulse 1.4s ease-in-out infinite'
+              }}/>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={skeletonStyle(140, 16)}/>
+                <div style={skeletonStyle(100, 12)}/>
+              </div>
+            </div>
+            {/* Stats skeleton */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              {[1,2,3].map(i => <div key={i} style={{ ...skeletonStyle('100%', 56), borderRadius: 12 }}/>)}
+            </div>
+            {/* Rows skeleton */}
+            {[1,2,3,4,5].map(i => <div key={i} style={skeletonStyle('100%', 32)}/>)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Error state ──────────────────────────────────────────── */
+  if (error) {
+    return (
+      <div className="sp-panel sp-profile-panel animate">
+        <div className="sp-panel-hd">
+          <div className="sp-panel-title">My Profile</div>
+          <button className="sp-panel-close" onClick={onClose}>
+            <Ic size={16}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Ic>
+          </button>
+        </div>
+        <div className="sp-panel-body sp-profile-body">
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: 12, padding: '32px 16px', textAlign: 'center'
+          }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%',
+              background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <Ic size={24} style={{ color: '#E11D48' }}>
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </Ic>
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>
+              Failed to load profile
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
+              Could not reach <code style={{ background: 'var(--border)', padding: '2px 6px', borderRadius: 4, fontSize: 12 }}>
+                /api/student/profile
+              </code>
+              <br/>{error}
+            </div>
+            <button
+              className="sp-btn sp-btn-primary"
+              style={{ marginTop: 8 }}
+              onClick={() => { setLoading(true); setError(null); /* re-mount trick */ onClose(); }}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Normal profile view ──────────────────────────────────── */
   return (
     <div className="sp-panel sp-profile-panel animate">
       <div className="sp-panel-hd">
@@ -536,7 +702,7 @@ function ProfilePanel({ onClose, setActive }) {
           ))}
         </div>
 
-        {/* Info sections */}
+        {/* Personal Information */}
         <div className="sp-profile-section-label">Personal Information</div>
         <div className="sp-profile-rows">
           {[
@@ -553,6 +719,7 @@ function ProfilePanel({ onClose, setActive }) {
           ))}
         </div>
 
+        {/* Contact Details */}
         <div className="sp-profile-section-label">Contact Details</div>
         <div className="sp-profile-rows">
           {[
@@ -567,6 +734,7 @@ function ProfilePanel({ onClose, setActive }) {
           ))}
         </div>
 
+        {/* Parent / Guardian */}
         <div className="sp-profile-section-label">Parent / Guardian</div>
         <div className="sp-profile-rows">
           {[
@@ -581,15 +749,20 @@ function ProfilePanel({ onClose, setActive }) {
           ))}
         </div>
 
-        <div className="sp-profile-section-label">Achievements & Certificates</div>
-        <div style={{padding:'0 0 8px'}}>
-          {p.certificates.map((c,i) => (
-            <div key={i} className="sp-cert-row">
-              <div className="sp-cert-icon"><Ic size={14}><polyline points="9 11 12 14 22 4"/></Ic></div>
-              <span>{c}</span>
+        {/* Achievements */}
+        {p.certificates.length > 0 && (
+          <>
+            <div className="sp-profile-section-label">Achievements & Certificates</div>
+            <div style={{padding:'0 0 8px'}}>
+              {p.certificates.map((c,i) => (
+                <div key={i} className="sp-cert-row">
+                  <div className="sp-cert-icon"><Ic size={14}><polyline points="9 11 12 14 22 4"/></Ic></div>
+                  <span>{c}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
 
         <button className="sp-profile-edit-btn" onClick={onClose}>
           <Ic size={15}><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></Ic>
@@ -599,6 +772,25 @@ function ProfilePanel({ onClose, setActive }) {
     </div>
   );
 }
+
+/* ── Skeleton helper (used above) ────────────────────────────── */
+function skeletonStyle(width, height) {
+  return {
+    width, height,
+    borderRadius: 8,
+    background: 'var(--border)',
+    animation: 'sp-skeleton-pulse 1.4s ease-in-out infinite',
+  };
+}
+
+/* ── Add this keyframe to your StudentPortal.css ─────────────── */
+/*
+@keyframes sp-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+*/
+
 
 /* ================================================================
    TOPBAR

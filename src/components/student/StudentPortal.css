@@ -1001,3 +1001,8 @@ img { display: block; max-width: 100%; }
   .sp-tabs         { padding: 0 14px; }
   .sp-tab          { padding: 12px 12px; font-size: 12px; }
 }
+
+@keyframes sp-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
