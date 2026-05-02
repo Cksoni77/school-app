@@ -10,6 +10,8 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from "react-router-dom";
+import API from "../../services/api";
 import "./StudentPortal.css";
 
 /* ── tiny icon helper ───────────────────────────────────────── */
@@ -51,46 +53,6 @@ const NAV_ITEMS = [
   { id: 'subjects',      label: 'My Subjects'    },
   { id: 'gallery',       label: 'Gallery'        },
   { id: 'exams',         label: 'Exam Reports'   },
-];
-
-// Timetable
-const TT_DAYS    = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-const TT_PERIODS = [
-  { time: '8:00\n9:00',   slots: [
-    { label:'Mathematics', room:'Room 12', cls:'tt-math' },
-    { label:'English',     room:'Room 4',  cls:'tt-eng'  },
-    { label:'Physics',     room:'Lab 2',   cls:'tt-phys' },
-    { label:'Mathematics', room:'Room 12', cls:'tt-math' },
-    { label:'Computer',    room:'Lab 3',   cls:'tt-comp' },
-  ]},
-  { time: '9:00\n10:00', slots: [
-    { label:'Science',     room:'Lab 1',   cls:'tt-sci'  },
-    { label:'Mathematics', room:'Room 12', cls:'tt-math' },
-    { label:'English',     room:'Room 4',  cls:'tt-eng'  },
-    { label:'',            room:'',        cls:'tt-empty'},
-    { label:'Physics',     room:'Lab 2',   cls:'tt-phys' },
-  ]},
-  { time: '10:30\n11:30', slots: [
-    { label:'Computer',    room:'Lab 3',   cls:'tt-comp' },
-    { label:'Social Sci.', room:'Room 8',  cls:'tt-soc'  },
-    { label:'Mathematics', room:'Room 12', cls:'tt-math' },
-    { label:'Science',     room:'Lab 1',   cls:'tt-sci'  },
-    { label:'Art',         room:'Art Room',cls:'tt-art'  },
-  ]},
-  { time: '11:30\n12:30', slots: [
-    { label:'English',     room:'Room 4',  cls:'tt-eng'  },
-    { label:'Physics',     room:'Lab 2',   cls:'tt-phys' },
-    { label:'Social Sci.', room:'Room 8',  cls:'tt-soc'  },
-    { label:'Computer',    room:'Lab 3',   cls:'tt-comp' },
-    { label:'Science',     room:'Lab 1',   cls:'tt-sci'  },
-  ]},
-  { time: '1:30\n2:30',  slots: [
-    { label:'Social Sci.', room:'Room 8',  cls:'tt-soc'  },
-    { label:'Art',         room:'Art Room',cls:'tt-art'  },
-    { label:'Science',     room:'Lab 1',   cls:'tt-sci'  },
-    { label:'English',     room:'Room 4',  cls:'tt-eng'  },
-    { label:'Mathematics', room:'Room 12', cls:'tt-math' },
-  ]},
 ];
 
 // Assignments
@@ -980,28 +942,73 @@ function Overview({ setActive }) {
    SECTION: TIMETABLE
    ================================================================ */
 function Timetable() {
+  const [daysState, setDaysState] = useState([]);
+  const [periodsState, setPeriodsState] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchTimetable = async () => {
+      try {
+        // ✅ Use your custom API instance (points to http://localhost:8080)
+        const res = await API.get("/api/student/timetable");
+
+        // Axios stores the JSON response in 'res.data'
+        const data = res.data;
+        console.log("Raw timetable data:", data);
+
+        setDaysState(data.days || []);
+        setPeriodsState(data.periods || []);
+        setLoaded(true);
+      } catch (err) {
+        console.error("Timetable Error:", err);
+        setError(err.response?.data?.message || "Failed to load timetable.");
+        setLoaded(true);
+      }
+    };
+
+    fetchTimetable();
+  }, []);
+
+  if (!loaded) return <div>Loading timetable...</div>;
+  if (error) return <div style={{ color: 'red' }}>{error}</div>;
+
   return (
     <div className="sp-page">
       <div className="sp-section-title">Weekly Timetable</div>
-      <div className="sp-section-sub">Grade 10 – A · Academic Year 2024–25</div>
+      <div className="sp-section-sub">Academic Year 2024–25</div>
+
       <div className="sp-tt-grid animate">
+        {/* HEADER */}
         <div className="sp-tt-header sp-tt-cell">Time</div>
-        {TT_DAYS.map(d => <div key={d} className="sp-tt-header sp-tt-cell">{d}</div>)}
-        {TT_PERIODS.map((p, pi) => (
-          <>
-            <div key={`t${pi}`} className="sp-tt-cell sp-tt-time">{p.time.split('\n').map((l,i)=><div key={i}>{l}</div>)}</div>
-            {p.slots.map((s,si) => (
-              <div key={`${pi}-${si}`} className="sp-tt-cell" style={{padding:6}}>
-                {s.label
-                  ? <div className={`sp-tt-subject ${s.cls}`}>
-                      <div style={{fontWeight:600,fontSize:12}}>{s.label}</div>
-                      <div className="sp-tt-room">{s.room}</div>
-                    </div>
-                  : <div className="sp-tt-subject tt-empty">—</div>
-                }
+        {/* ✅ Map directly from daysState */}
+        {daysState.map((d, i) => (
+          <div key={i} className="sp-tt-header sp-tt-cell">{d}</div>
+        ))}
+
+        {/* ROWS */}
+        {/* ✅ Map directly from periodsState */}
+        {periodsState.map((p, pi) => (
+          <div key={pi} style={{ display: "contents" }}>
+            <div className="sp-tt-cell sp-tt-time">
+              {p.time?.split('\n').map((l, i) => (
+                <div key={i}>{l}</div>
+              ))}
+            </div>
+
+            {p.slots?.map((s, si) => (
+              <div key={`${pi}-${si}`} className="sp-tt-cell" style={{ padding: 6 }}>
+                {s.label ? (
+                  <div className={`sp-tt-subject ${s.cls}`}>
+                    <div style={{ fontWeight: 600, fontSize: 12 }}>{s.label}</div>
+                    <div className="sp-tt-room">{s.room}</div>
+                  </div>
+                ) : (
+                  <div className="sp-tt-subject tt-empty">—</div>
+                )}
               </div>
             ))}
-          </>
+          </div>
         ))}
       </div>
     </div>

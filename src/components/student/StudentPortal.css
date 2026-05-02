@@ -504,7 +504,7 @@ img { display: block; max-width: 100%; }
    ================================================================ */
 .sp-tt-grid {
   display: grid;
-  grid-template-columns: 80px repeat(5, 1fr);
+  grid-template-columns: 90px repeat(6, minmax(120px, 1fr));
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -526,6 +526,9 @@ img { display: block; max-width: 100%; }
   text-align: center;
   padding: 12px 8px;
   letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .sp-tt-time {
   background: var(--slate);
